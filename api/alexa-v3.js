@@ -11,7 +11,7 @@ module.exports = function(app, cache, log) {
     var query = new Buffer(req.params.query, 'base64').toString();
     var lang = req.query.language || 'en';
 
-    // Setup logging 
+    // Setup logging
     var log_function = log.get("search-v3")
     var log_header = req.connection.remoteAddress + ' [' + lang + ']: '
     log_function.info(log_header + "Query is '" + query + "'");
@@ -20,6 +20,7 @@ module.exports = function(app, cache, log) {
     ytsearch(query, {
       maxResults: 1,
       type: 'video',
+      videoDuration: 'short',
       relevanceLanguage: lang,
       key: process.env.YOUTUBE_API_KEY
     }, function(err, results) {
@@ -30,15 +31,15 @@ module.exports = function(app, cache, log) {
           state: 'error',
           message: err.message
         });
-      } 
-      // No results found by ytsearch 
+      }
+      // No results found by ytsearch
       else if (!results || !results.length) {
         log_function.info(log_header + 'No results found');
         res.status(200).send({
           state: 'error',
           message: 'No results found'
         });
-      } 
+      }
       // At least one result was found, extract metadata and send to user
       else {
         var metadata = results[0];
@@ -53,8 +54,8 @@ module.exports = function(app, cache, log) {
           video: {
             id: id,
             title: title,
-              link: url
-            }
+            link: url
+          }
         });
       }
     });
@@ -65,15 +66,15 @@ module.exports = function(app, cache, log) {
     var id = req.params.id;
     var url = YOUTUBE_URL_PREFIX + id;
 
-    // Setup logging 
+    // Setup logging
     var log_function = log.get("download-v3")
     var log_header = req.connection.remoteAddress + ': '
     log_function.info(log_header + "Download requested for video with ID '" + id + "'");
 
     if (id in cache) {
-      log_function.info(log_header + "Cache hit.");
+      log_function.info(log_header + "Cache hit. Download already in progress ...");
     }
-    else { 
+    else {
       log_function.info(log_header + "Cache miss. Starting download ...");
 
       // Mark video as 'not downloaded' in the cache
@@ -101,7 +102,7 @@ module.exports = function(app, cache, log) {
     // Return correctly and download the audio in the background
     res.status(200).json({
       state: 'success',
-      message: 'Beginning download process.',
+      message: 'Download process started.',
       link: '/site/' + id + '.m4a'
     });
   });
